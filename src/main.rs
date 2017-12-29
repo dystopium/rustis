@@ -6,7 +6,6 @@ extern crate tokio_proto;
 extern crate tokio_service;
 
 use std::io;
-use std::str;
 use bytes::BytesMut;
 use futures::{future, Future};
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -15,10 +14,16 @@ use tokio_proto::TcpServer;
 use tokio_proto::pipeline::ServerProto;
 use tokio_service::Service;
 
+mod redis;
+use redis::{Cmd, Res};
+
+mod storage;
+use storage::Storage;
+
 fn main() {
     println!("Rustis start!");
 
-    let addr = "127.0.0.1:9999".parse().unwrap();
+    let addr = "0.0.0.0:6379".parse().unwrap();
     let server = TcpServer::new(RedisProto, addr);
 
     // this lambda instantiates a new service for each incoming connection
@@ -28,19 +33,13 @@ fn main() {
 pub struct RedisCodec;
 
 impl Decoder for RedisCodec {
-    type Item = String;
+    type Item = Cmd;
     type Error = io::Error;
 
-    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<String>> {
-        if let Some(i) = buf.iter().position(|&b| b == b'\n') {
-            let line = buf.split_to(i);
-            // remove the \n
-            buf.split_to(1);
-
-            match str::from_utf8(&line) {
-                Ok(s) => Ok(Some(s.to_string())),
-                Err(_) => Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid UTF-8")),
-            }
+    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Cmd>> {
+        // TODO: for pipelining, make this a while(parse) and then batch them up
+        if let Ok(Some(cmd)) = redis::parse_cmd(buf) {
+            Ok(Some(cmd))
         } else {
             Ok(None)
         }
@@ -48,12 +47,11 @@ impl Decoder for RedisCodec {
 }
 
 impl Encoder for RedisCodec {
-    type Item = String;
+    type Item = Res;
     type Error = io::Error;
 
-    fn encode(&mut self, msg: String, buf: &mut BytesMut) -> io::Result<()> {
-        buf.extend(msg.as_bytes());
-        buf.extend(b"\n");
+    fn encode(&mut self, msg: Res, buf: &mut BytesMut) -> io::Result<()> {
+        msg.serialize(buf);
         Ok(())
     }
 }
@@ -61,8 +59,8 @@ impl Encoder for RedisCodec {
 pub struct RedisProto;
 
 impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for RedisProto {
-    type Request = String;
-    type Response = String;
+    type Request = Cmd;
+    type Response = Res;
 
     type Transport = Framed<T, RedisCodec>;
     type BindTransport = Result<Self::Transport, io::Error>;
@@ -72,17 +70,19 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for RedisProto {
     }
 }
 
-pub struct RedisService;
+pub struct RedisService {
+    storage: Storage,
+}
 
 impl Service for RedisService {
-    type Request = String;
-    type Response = String;
+    type Request = Cmd;
+    type Response = Res;
 
     type Error = io::Error;
 
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        Box::new(future::ok(req))
+        Box::new(future::ok(Res))
     }
 }
