@@ -1,6 +1,10 @@
 use super::types::Storage;
 use super::super::redis::*;
 
+pub fn NewDefault() -> Default {
+    Default {}
+}
+
 pub struct Default;
 
 impl Storage for Default {

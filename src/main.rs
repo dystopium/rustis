@@ -18,7 +18,7 @@ mod redis;
 use redis::{Cmd, Res};
 
 mod storage;
-use storage::{Default, Storage};
+use storage::{NewDefault, Storage};
 
 fn main() {
     println!("Rustis start!");
@@ -29,7 +29,7 @@ fn main() {
     // this lambda instantiates a new service for each incoming connection
     server.serve(|| {
         Ok(RedisService {
-            storage: Box::new(Default),
+            storage: Box::new(NewDefault()),
         })
     });
 }

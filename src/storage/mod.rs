@@ -1,4 +1,4 @@
 mod types;
 pub use self::types::Storage;
 mod default;
-pub use self::default::Default;
+pub use self::default::NewDefault;
