@@ -1,16 +1,14 @@
 use super::types::Storage;
-
-use super::super::redis::Cmd;
-use super::super::redis::Res;
+use super::super::redis::*;
 
 pub struct Default;
 
 impl Storage for Default {
-    fn echo(&self, cmd: Cmd) -> Res {
-        //
+    fn echo(&self, cmd: EchoCmd) -> Res {
+        Res::Echo { msg: cmd.msg }
     }
 
-    fn ping(&self, cmd: Cmd) -> Res {
-        //
+    fn ping(&self, cmd: PingCmd) -> Res {
+        Res::Pong { msg: cmd.msg }
     }
 }

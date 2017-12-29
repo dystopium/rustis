@@ -9,15 +9,15 @@ pub enum Res {
 }
 
 impl Res {
-    pub fn serialize(&self, buf: &mut BytesMut) {
+    pub fn serialize(self, buf: &mut BytesMut) {
         match self {
-            &Res::Echo { msg } => {
+            Res::Echo { msg } => {
                 buf.extend("+".as_bytes());
                 buf.extend(msg.as_bytes());
                 buf.extend("\r\n".as_bytes());
             }
 
-            &Res::Pong { msg } => {
+            Res::Pong { msg } => {
                 if let Some(m) = msg {
                     buf.extend("+".as_bytes());
                     buf.extend(m.as_bytes());

@@ -1,6 +1,6 @@
-use super::super::redis::{Cmd, Res};
+use super::super::redis::*;
 
 pub trait Storage {
-    fn echo(&self, Cmd) -> Res;
-    fn ping(&self, Cmd) -> Res;
+    fn echo(&self, EchoCmd) -> Res;
+    fn ping(&self, PingCmd) -> Res;
 }

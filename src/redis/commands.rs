@@ -4,26 +4,31 @@ use std::io;
 use bytes::BytesMut;
 
 pub enum Cmd {
-    Echo {
-        msg: String,
-    },
+    Echo(EchoCmd),
+    Get(GetCmd),
+    Ping(PingCmd),
+    Set(SetCmd),
+}
 
-    Get {
-        key: String,
-    },
+pub struct EchoCmd {
+    pub msg: String,
+}
 
-    Ping {
-        msg: Option<String>,
-    },
+pub struct GetCmd {
+    pub key: String,
+}
 
-    Set {
-        key: String,
-        value: String,
-        ex: Option<u64>,
-        px: Option<u64>,
-        nx: Option<bool>,
-        xx: Option<bool>,
-    },
+pub struct PingCmd {
+    pub msg: Option<String>,
+}
+
+pub struct SetCmd {
+    pub key: String,
+    pub value: String,
+    pub ex: Option<u64>,
+    pub px: Option<u64>,
+    pub nx: Option<bool>,
+    pub xx: Option<bool>,
 }
 
 // returns an optional command. If the return valuse is Some(Cmd) then the buf

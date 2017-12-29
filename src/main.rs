@@ -18,7 +18,7 @@ mod redis;
 use redis::{Cmd, Res};
 
 mod storage;
-use storage::Storage;
+use storage::{Default, Storage};
 
 fn main() {
     println!("Rustis start!");
@@ -27,7 +27,11 @@ fn main() {
     let server = TcpServer::new(RedisProto, addr);
 
     // this lambda instantiates a new service for each incoming connection
-    server.serve(|| Ok(RedisService));
+    server.serve(|| {
+        Ok(RedisService {
+            storage: Box::new(Default),
+        })
+    });
 }
 
 pub struct RedisCodec;
@@ -71,7 +75,7 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for RedisProto {
 }
 
 pub struct RedisService {
-    storage: Storage,
+    storage: Box<Storage>,
 }
 
 impl Service for RedisService {
@@ -83,6 +87,10 @@ impl Service for RedisService {
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        Box::new(future::ok(Res))
+        let res = match req {
+            Cmd::Echo(cmd) => self.storage.echo(cmd),
+            Cmd::Ping(cmd) => self.storage.ping(cmd),
+        };
+        Box::new(future::ok(res))
     }
 }
